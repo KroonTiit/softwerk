@@ -6,12 +6,15 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.boot.test.mock.mockito.MockBean;
 
 import com.example.softwerk.person.Person;
 import com.example.softwerk.person.PersonController;
 import com.example.softwerk.person.PersonRepository;
+import com.example.softwerk.person.PersonService;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -20,9 +23,8 @@ import static org.mockito.Mockito.*;
 
 
 class PersonControllerTest {
-
     @Mock
-    private PersonRepository repository;
+    private PersonService personService;
 
     @InjectMocks
     private PersonController personController;
@@ -33,51 +35,71 @@ class PersonControllerTest {
     }
 
     @Test
-    void testAddPerson_WithParents() {
-        Person mother = new Person("Mother");
-        Person father = new Person("Father");
+    void testHelloWorld() {
+        String result = personController.test();
+        assertEquals("Hello world", result);
+    }
 
-        when(repository.findById(1L)).thenReturn(Optional.of(mother));
-        when(repository.findById(2L)).thenReturn(Optional.of(father));
+    @Test
+    void testGetAllPersons() {
+        List<Person> personList = List.of(new Person("Alice"), new Person("Bob"));
+        when(personService.getAllPersons()).thenReturn(personList);
 
-        List<Person> result = personController.addPerson("Child", 2L, 1L);
+        List<Person> result = personController.getAllPersons();
+        assertEquals(2, result.size());
+        assertEquals("Alice", result.get(0).getName());
+    }
 
-        verify(repository, times(1)).save(any(Person.class));
-        assertNotNull(result);
+    @Test
+    void testAddPerson() {
+        Person child = new Person("Child");
+        List<Person> updatedList = List.of(child);
+        when(personService.addPerson("Child", null, null)).thenReturn(updatedList);
+
+        List<Person> result = personController.addPerson("Child", null, null);
+        assertEquals(1, result.size());
+        assertEquals("Child", result.get(0).getName());
     }
 
     @Test
     void testGetFather() {
-        Person child = new Person("Child");
         Person father = new Person("Father");
-        child.setFather(father);
-
-        when(repository.findById(1L)).thenReturn(Optional.of(child));
+        when(personService.getFather(1L)).thenReturn(father);
 
         Person result = personController.getFather(1L);
         assertEquals("Father", result.getName());
     }
 
     @Test
+    void testGetMother() {
+        Person mother = new Person("Mother");
+        when(personService.getMother(1L)).thenReturn(mother);
+
+        Person result = personController.getMother(1L);
+        assertEquals("Mother", result.getName());
+    }
+
+    @Test
     void testIsSibling() {
-        Person person = new Person("Person");
-        Person sibling = new Person("Sibling");
+        when(personService.isSibling(1L, 2L)).thenReturn(true);
 
-        Person father = new Person("Father");
-        person.setFather(father);
-        sibling.setFather(father);
+        Boolean result = personController.isSibling(1L, 2L);
+        assertTrue(result);
+    }
 
-        when(repository.findById(person.getId())).thenReturn(Optional.of(person));
-        when(repository.findById(sibling.getId())).thenReturn(Optional.of(sibling));
+    @Test
+    void testIsSharingParent() {
+        when(personService.isSharingParent(1L, 2L)).thenReturn(true);
 
-        assertTrue(personController.isSibling(person.getId(), sibling.getId()));
+        Boolean result = personController.isSharingParent(1L, 2L);
+        assertTrue(result);
     }
 
     @Test
     void testGetName() {
-        Person person = new Person("TestName");
-        when(repository.findById(1L)).thenReturn(Optional.of(person));
+        when(personService.getName(1L)).thenReturn(Map.of("name", "Alice"));
 
-        assertEquals("TestName", personController.getName(1L).get("name"));
+        Map<String, String> result = personController.getName(1L);
+        assertEquals("Alice", result.get("name"));
     }
 }

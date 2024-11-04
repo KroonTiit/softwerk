@@ -1,5 +1,6 @@
 package com.example.softwerk.person;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -7,12 +8,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.softwerk.PersonNotFoundException;
-
 import io.micrometer.common.lang.Nullable;
 import jakarta.transaction.Transactional;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -21,10 +19,11 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api")
 public class PersonController {
-    private final PersonRepository repository;
+    @Autowired
+    private PersonService personService;
 
-    public PersonController(PersonRepository repository) {
-        this.repository = repository;
+    public PersonController(PersonService personService) {
+        this.personService = personService;
     }
 
     @GetMapping("/test")
@@ -34,60 +33,37 @@ public class PersonController {
 
     @GetMapping("/getFamilytree")
     public List<Person> getAllPersons() {
-        return repository.findAll();
+        return personService.getAllPersons();
     }
 
     @PostMapping("/addPerson")
     public List<Person> addPerson(@RequestParam String name, @Nullable Long idFather, @Nullable Long idMother) {
-        Person person = new Person(name);
-        
-        if (idMother != null) {
-            Person mother = repository.findById(idMother).orElseThrow(() -> new PersonNotFoundException(idMother));
-            person.setMother(mother);
-            mother.getMotherToChildren().add(person);
-        }
-        if (idFather != null) {
-            Person father = repository.findById(idFather).orElseThrow(() -> new PersonNotFoundException(idFather));
-            person.setFather(father);
-            father.getFatherToChildren().add(person);
-        }
-        repository.save(person);
-        return repository.findAll();
+        return personService.addPerson(name, idFather, idMother);
     }
 
     @GetMapping("/getFather")
     public Person getFather(@RequestParam Long id) {
-        Person person = repository.findById(id).orElseThrow(() -> new PersonNotFoundException(id));
-        return person.getFather();
+        return personService.getFather(id);
     }
 
    @GetMapping("/getMother")
     public Person getMother(@RequestParam Long id) {
-        Person person = repository.findById(id).orElseThrow(() -> new PersonNotFoundException(id));
-        return person.getMother();
+        return personService.getMother(id);
     } 
 
     @GetMapping("/isSibling")
     public Boolean isSibling(@RequestParam Long id, Long siblingId) {
-        Person person = repository.findById(id).orElseThrow(() -> new PersonNotFoundException(id));
-        Person sibling = repository.findById(siblingId).orElseThrow(() -> new PersonNotFoundException(siblingId));
-
-        return person.getFather() == sibling.getFather() &&
-                person.getMother() == sibling.getMother();
+        return personService.isSibling(id, siblingId);
     }
 
     @GetMapping("/isSharingParent")
     public Boolean isSharingParent(@RequestParam Long id, Long siblingId) {
-        Person person = repository.findById(id).orElseThrow(() -> new PersonNotFoundException(id));
-        Person sibling = repository.findById(siblingId).orElseThrow(() -> new PersonNotFoundException(siblingId));
-
-        return person.getFather() == sibling.getFather() || 
-                person.getMother() == sibling.getMother();
+        return personService.isSharingParent(id, siblingId);
     }
 
     @GetMapping("/getName")
     public Map<String, String> getName(@RequestParam Long id) {
-        Person person = repository.findById(id).orElseThrow(() -> new PersonNotFoundException(id));
-        return Collections.singletonMap("name", person.getName());
+        return personService.getName(id);
     }
+    
 }
